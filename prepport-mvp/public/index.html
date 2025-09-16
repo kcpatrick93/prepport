@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Prepport — Call Prep MVP</title>
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; margin: 0; background:#0b1020; color:#e8ecf1; }
+    header { padding: 24px 20px; border-bottom: 1px solid #1c2545; position: sticky; top:0; background:#0b1020; }
+    main { max-width: 1100px; margin: 0 auto; padding: 20px; display:grid; grid-template-columns: 1fr 1fr; gap:24px; }
+    h1 { margin:0; font-size: 22px; }
+    .card { background:#121938; border:1px solid #1c2545; border-radius:14px; padding:16px; }
+    label { display:block; font-size:13px; opacity:.9; margin-bottom:4px; }
+    input, textarea { width:100%; padding:10px 12px; border-radius:10px; border:1px solid #273160; background:#0f1630; color:#e8ecf1; }
+    textarea { min-height: 84px; }
+    .row { display:grid; grid-template-columns: 1fr 1fr; gap:12px; }
+    button { background:#4b7bff; color:white; border:0; padding:12px 14px; border-radius:12px; cursor:pointer; font-weight:600; }
+    button:disabled { opacity:.5; cursor:not-allowed; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .pill { display:inline-block; padding:4px 8px; border-radius:999px; background:#0f1630; border:1px solid #273160; font-size:12px; margin-right:6px; }
+    .small { font-size:12px; opacity:.9; }
+    .muted { color:#a5b3d6; }
+    pre { white-space:pre-wrap; word-wrap:break-word; background:#0f1630; border:1px solid #273160; padding:12px; border-radius:10px; }
+    .col-span-2 { grid-column: span 2; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Prepport — MVP</h1>
+    <div class="small muted">Grounded call prep in minutes. No keys in the browser.</div>
+  </header>
+
+  <main>
+    <section class="card">
+      <h3>Your company profile</h3>
+      <div class="row">
+        <div>
+          <label>Company name</label>
+          <input id="yourName" placeholder="Astris Partners" />
+        </div>
+        <div>
+          <label>Website (optional)</label>
+          <input id="yourWebsite" placeholder="https://…" />
+        </div>
+      </div>
+      <label style="margin-top:8px;">Value proposition (1–2 lines)</label>
+      <textarea id="yourValue" placeholder="We help life sciences teams…"></textarea>
+      <label style="margin-top:8px;">Key benefits (comma separated)</label>
+      <input id="yourBenefits" placeholder="Faster discovery, Higher quality leads, Lower CAC" />
+    </section>
+
+    <section class="card">
+      <h3>Target meeting</h3>
+      <div class="row">
+        <div>
+          <label>Target company name</label>
+          <input id="targetName" placeholder="Basil Systems" />
+        </div>
+        <div>
+          <label>Target website</label>
+          <input id="targetWebsite" placeholder="https://basilsystems.com" />
+        </div>
+      </div>
+      <div class="row" style="margin-top:8px;">
+        <div>
+          <label>Contact name</label>
+          <input id="contactName" placeholder="Keith McDonald" />
+        </div>
+        <div>
+          <label>Contact title</label>
+          <input id="contactTitle" placeholder="Strategic Account Executive" />
+        </div>
+      </div>
+      <label style="margin-top:8px;">LinkedIn URL (optional)</label>
+      <input id="contactLinkedIn" placeholder="https://www.linkedin.com/in/…" />
+      <div style="margin-top:12px;">
+        <button id="runBtn">Generate call prep</button>
+        <span id="status" class="small pill muted">Idle</span>
+      </div>
+    </section>
+
+    <section class="card col-span-2">
+      <h3>Output</h3>
+      <div id="output" class="muted small">No report yet.</div>
+    </section>
+
+    <section class="card col-span-2">
+      <h3>Raw JSON</h3>
+      <pre id="raw" class="mono small">—</pre>
+    </section>
+  </main>
+
+<script>
+async function call(fn, payload){
+  const res = await fetch(`/.netlify/functions/${fn}`, {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify(payload || {})
+  });
+  if(!res.ok){ throw new Error(fn + " failed: " + await res.text()); }
+  return res.json();
+}
+
+function el(id){ return document.getElementById(id); }
+
+function toProfile(){
+  return {
+    name: el('yourName').value.trim(),
+    website: el('yourWebsite').value.trim(),
+    valueProposition: el('yourValue').value.trim(),
+    keyBenefits: el('yourBenefits').value.split(',').map(s=>s.trim()).filter(Boolean)
+  };
+}
+
+function toContact(){
+  return {
+    name: el('contactName').value.trim(),
+    title: el('contactTitle').value.trim(),
+    linkedinUrl: el('contactLinkedIn').value.trim()
+  };
+}
+
+function renderReport(r){
+  const out = el('output');
+  out.innerHTML = `
+    <div style="margin-bottom:10px;">
+      <span class="pill">What they do</span>
+      <div>${r.summary?.whatTheyDo || '—'}</div>
+    </div>
+    <div class="row">
+      <div>
+        <span class="pill">Founded</span> ${r.summary?.founded || '—'}
+      </div>
+      <div>
+        <span class="pill">HQ</span> ${r.summary?.hq || '—'}
+      </div>
+    </div>
+    <div style="margin-top:12px;">
+      <span class="pill">Lead with intelligence</span>
+      <div><strong>${r.leadWithIntelligence?.openingStatement || '—'}</strong></div>
+      <ul>${(r.leadWithIntelligence?.bullets || []).map(b=>`<li>${b}</li>`).join('')}</ul>
+    </div>
+    <div style="margin-top:12px;">
+      <span class="pill">Questions</span>
+      <ol>${(r.questions?.step4 || []).map(q=>`<li>${q}</li>`).join('')}</ol>
+    </div>
+    <div class="small muted" style="margin-top:12px;">
+      Sources: ${(r.sources?.news||[]).slice(0,3).map(n=>`<a href="${n.url}" target="_blank">${n.title}</a>`).join(' · ')}
+    </div>
+  `;
+  el('raw').textContent = JSON.stringify(r, null, 2);
+}
+
+document.getElementById('runBtn').addEventListener('click', async () => {
+  const btn = el('runBtn'); const status = el('status');
+  btn.disabled = true; status.textContent = "Fetching…";
+  try{
+    const yourCompanyProfile = toProfile();
+    const target = { name: el('targetName').value.trim(), website: el('targetWebsite').value.trim() };
+    const contact = toContact();
+
+    const pages = (await call('crawl-company', { website: target.website })).pages;
+    status.textContent = "Searching news…";
+    const news = (await call('search-company', { companyName: target.name })).news;
+    status.textContent = "Assembling report…";
+    const report = await call('prep-report', { yourCompanyProfile, targetCompanyText: pages, news, contact, target });
+    renderReport(report);
+    status.textContent = "Done";
+  }catch(e){
+    console.error(e);
+    el('output').textContent = "Error: " + e.message;
+    el('raw').textContent = '—';
+    status.textContent = "Error";
+  }finally{
+    btn.disabled = false;
+  }
+});
+</script>
+</body>
+</html>
