@@ -72,7 +72,10 @@ export async function handler(event){
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       temperature: 0.3,
-      response_format: { type: "json_schema", json_schema: { name: "meeting_prep", schema, strict: True } },
+      response_format: {
+  type: "json_schema",
+  json_schema: { name: "meeting_prep", schema, strict: true } // <- true (lowercase)
+},
       messages: [
         { role: "system", content: system },
         { role: "user", content: "Build a grounded discovery-call brief from the following JSON."},
