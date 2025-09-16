@@ -10,7 +10,7 @@ export async function handler(event){
     const payload = {
       query: companyName + " funding OR press release OR raises OR launches OR partnership",
       search_depth: "advanced",
-      include_answer: False,
+      include_answer: false,   // <- false (lowercase)
       max_results: 5,
       days: 365
     };
