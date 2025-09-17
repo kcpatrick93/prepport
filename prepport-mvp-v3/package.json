@@ -1,0 +1,9 @@
+{
+  "name": "prepport-mvp",
+  "version": "0.3.0",
+  "private": true,
+  "dependencies": {
+    "openai": "^4.55.3",
+    "zod": "^3.23.8"
+  }
+}

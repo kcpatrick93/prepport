@@ -1,0 +1,129 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Prepport — MVP v3</title>
+<style>
+body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;margin:0;background:#0b1020;color:#e8ecf1}
+header{padding:24px 20px;border-bottom:1px solid #1c2545;position:sticky;top:0;background:#0b1020}
+main{max-width:1100px;margin:0 auto;padding:20px;display:grid;grid-template-columns:1fr 1fr;gap:24px}
+h1{margin:0;font-size:22px}.card{background:#121938;border:1px solid #1c2545;border-radius:14px;padding:16px}
+label{display:block;font-size:13px;opacity:.9;margin-bottom:4px}input,textarea,select{width:100%;padding:10px 12px;border-radius:10px;border:1px solid #273160;background:#0f1630;color:#e8ecf1}
+textarea{min-height:84px}.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}button{background:#4b7bff;color:#fff;border:0;padding:12px 14px;border-radius:12px;cursor:pointer;font-weight:600}
+button:disabled{opacity:.5;cursor:not-allowed}.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}.pill{display:inline-block;padding:4px 8px;border-radius:999px;background:#0f1630;border:1px solid #273160;font-size:12px;margin-right:6px}
+.small{font-size:12px;opacity:.9}.muted{color:#a5b3d6}pre{white-space:pre-wrap;word-wrap:break-word;background:#0f1630;border:1px solid #273160;padding:12px;border-radius:10px}.col-span-2{grid-column:span 2}.inline{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+</style></head>
+<body>
+<header><h1>Prepport — MVP v3</h1><div class="small muted">Universal call prep in minutes. Works for any salesperson, any industry.</div></header>
+<main>
+<section class="card">
+  <h3>Your company profile</h3>
+  <div class="row">
+    <div><label>Company name</label><input id="yourName" placeholder="Your Company"></div>
+    <div><label>Website</label><input id="yourWebsite" placeholder="https://…"></div>
+  </div>
+  <label style="margin-top:8px;">Value proposition (1–2 lines)</label>
+  <textarea id="yourValue" placeholder="We help …"></textarea>
+  <label style="margin-top:8px;">Key benefits (comma separated)</label>
+  <input id="yourBenefits" placeholder="Faster…, Higher quality…, Lower cost…">
+  <div class="inline" style="margin-top:10px;">
+    <button id="autofillBtn" title="Fill from website">Autofill from website</button>
+    <select id="profileSelect" style="max-width:260px;"></select>
+    <button id="saveBtn">Save profile</button>
+    <button id="deleteBtn" style="background:#e24a4a;">Delete</button>
+  </div>
+  <div class="small muted">Profiles are saved locally in your browser for now.</div>
+</section>
+
+<section class="card">
+  <h3>Target meeting</h3>
+  <div class="row">
+    <div><label>Target company name</label><input id="targetName" placeholder="Prospect Company"></div>
+    <div><label>Target website</label><input id="targetWebsite" placeholder="https://prospect.com"></div>
+  </div>
+  <div class="row" style="margin-top:8px;">
+    <div><label>Contact name</label><input id="contactName" placeholder="John Smith"></div>
+    <div><label>Contact title</label><input id="contactTitle" placeholder="VP of Sales"></div>
+  </div>
+  <label style="margin-top:8px;">LinkedIn URL (optional)</label>
+  <input id="contactLinkedIn" placeholder="https://www.linkedin.com/in/…">
+  <div style="margin-top:12px;"><button id="runBtn">Generate call prep</button> <span id="status" class="small pill muted">Idle</span></div>
+</section>
+
+<section class="card col-span-2"><h3>Call Prep Report</h3><div id="output" class="muted small">No report yet.</div></section>
+<section class="card col-span-2"><h3>Raw JSON</h3><pre id="raw" class="mono small">—</pre></section>
+</main>
+<script>
+function el(id){ return document.getElementById(id); }
+function getProfiles(){ return JSON.parse(localStorage.getItem('prepport_profiles')||'[]'); }
+function saveProfiles(arr){ localStorage.setItem('prepport_profiles', JSON.stringify(arr)); }
+function currentProfileFromForm(){
+  return {
+    id: el('yourName').value.trim().toLowerCase().replace(/\s+/g,'-') || ('profile-' + Date.now()),
+    name: el('yourName').value.trim(),
+    website: el('yourWebsite').value.trim(),
+    valueProposition: el('yourValue').value.trim(),
+    keyBenefits: el('yourBenefits').value.split(',').map(s=>s.trim()).filter(Boolean)
+  };
+}
+function fillForm(p){
+  el('yourName').value = p.name || '';
+  el('yourWebsite').value = p.website || '';
+  el('yourValue').value = p.valueProposition || '';
+  el('yourBenefits').value = (p.keyBenefits||[]).join(', ');
+}
+function renderProfileSelect(){
+  const sel = el('profileSelect');
+  const list = getProfiles();
+  sel.innerHTML = '<option value="">– Saved profiles –</option>' + list.map(p=>`<option value="${p.id}">${p.name}</option>`).join('');
+  sel.onchange = () => { const id = sel.value; if(!id) return; const hit = list.find(p=>p.id===id); if(hit) fillForm(hit); };
+}
+renderProfileSelect();
+el('saveBtn').onclick = ()=>{ const p = currentProfileFromForm(); if(!p.name){ alert('Enter a company name first.'); return; } const list = getProfiles(); const idx = list.findIndex(x=>x.id===p.id); if(idx>=0) list[idx]=p; else list.push(p); saveProfiles(list); renderProfileSelect(); alert('Saved locally.'); };
+el('deleteBtn').onclick = ()=>{ const list = getProfiles(); const name = el('yourName').value.trim(); const id = name.toLowerCase().replace(/\s+/g,'-'); const next = list.filter(p=>p.id!==id); saveProfiles(next); renderProfileSelect(); alert('Deleted (local).'); };
+
+async function call(fn, payload){
+  const res = await fetch(`/.netlify/functions/${fn}`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload || {}) });
+  if(!res.ok){ throw new Error(fn + " failed: " + await res.text()); }
+  return res.json();
+}
+async function autofillProfile(){
+  const website = el('yourWebsite').value.trim();
+  if(!website){ alert('Enter your company website first.'); return; }
+  const btn = el('autofillBtn'); btn.disabled = true;
+  try{ const { profile } = await call('autofill-profile', { website }); fillForm(profile); }
+  catch(e){ alert('Autofill failed: ' + e.message); }
+  finally{ btn.disabled = false; }
+}
+el('autofillBtn').onclick = autofillProfile;
+
+function toProfile(){ return { name: el('yourName').value.trim(), website: el('yourWebsite').value.trim(), valueProposition: el('yourValue').value.trim(), keyBenefits: el('yourBenefits').value.split(',').map(s=>s.trim()).filter(Boolean) }; }
+function toContact(){ return { name: el('contactName').value.trim(), title: el('contactTitle').value.trim(), linkedinUrl: el('contactLinkedIn').value.trim() }; }
+function renderReport(r){
+  const out = el('output');
+  out.innerHTML = `<div style="margin-bottom:10px;"><span class="pill">What they do</span><div>${r.summary?.whatTheyDo || '—'}</div></div>
+  <div class="row"><div><span class="pill">Founded</span> ${r.summary?.founded || '—'}</div><div><span class="pill">HQ</span> ${r.summary?.hq || '—'}</div></div>
+  <div class="row"><div><span class="pill">Size</span> ${r.summary?.size || '—'}</div><div><span class="pill">Industry</span> ${r.summary?.industry || '—'}</div></div>
+  ${r.summary?.funding?.lastRound ? `<div style="margin-top:8px;"><span class="pill">Latest Funding</span> ${r.summary.funding.lastRound} (${r.summary.funding.date || '—'})</div>` : ''}
+  <div style="margin-top:12px;"><span class="pill">Lead with intelligence</span><div><strong>${r.leadWithIntelligence?.openingStatement || '—'}</strong></div><ul>${(r.leadWithIntelligence?.bullets || []).map(b=>`<li>${b}</li>`).join('')}</ul></div>
+  <div style="margin-top:12px;"><span class="pill">Strategic Questions</span><ol>${(r.questions?.step4 || []).map(q=>`<li>${q}</li>`).join('')}</ol></div>
+  ${r.painPoints?.potentialChallenges ? `<div style="margin-top:12px;"><span class="pill">Potential Challenges</span><ul>${r.painPoints.potentialChallenges.map(c=>`<li>${c}</li>`).join('')}</ul></div>` : ''}
+  ${r.painPoints?.opportunities ? `<div style="margin-top:12px;"><span class="pill">Opportunities</span><ul>${r.painPoints.opportunities.map(o=>`<li>${o}</li>`).join('')}</ul></div>` : ''}
+  <div class="small muted" style="margin-top:12px;">Sources: ${(r.sources?.news||[]).slice(0,3).map(n=>`<a href="${n.url}" target="_blank">${n.title}</a>`).join(' · ')}</div>`;
+  document.getElementById('raw').textContent = JSON.stringify(r, null, 2);
+}
+document.getElementById('runBtn').addEventListener('click', async () => {
+  const btn = document.getElementById('runBtn'); const status = document.getElementById('status'); btn.disabled = true; status.textContent = "Fetching…";
+  try{
+    const yourCompanyProfile = toProfile();
+    const target = { name: el('targetName').value.trim(), website: el('targetWebsite').value.trim() };
+    const contact = toContact();
+    const pages = (await call('crawl-company', { website: target.website })).pages;
+    status.textContent = "Searching news…";
+    const news = (await call('search-company', { companyName: target.name })).news;
+    status.textContent = "Assembling report…";
+    const report = await call('prep-report', { yourCompanyProfile, targetCompanyText: pages, news, contact, target });
+    renderReport(report); status.textContent = "Done";
+  }catch(e){ console.error(e); document.getElementById('output').textContent = "Error: " + e.message; document.getElementById('raw').textContent = '—'; status.textContent = "Error"; }
+  finally{ btn.disabled = false; }
+});
+</script>
+</body></html>
