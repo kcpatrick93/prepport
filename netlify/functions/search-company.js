@@ -8,11 +8,11 @@ exports.handler = async function(event){
       return resp(200, { news: [] });
     }
     const payload = {
-      query: companyName + " funding OR press release OR raises OR launches OR partnership",
+      query: companyName + " funding OR investment OR raises OR launches OR partnership OR acquisition OR merger OR expansion OR growth OR revenue OR hiring OR leadership OR strategy OR innovation",
       search_depth: "advanced",
       include_answer: false,
-      max_results: 5,
-      days: 365
+      max_results: 8,
+      days: 730
     };
     const res = await fetch("https://api.tavily.com/search", {
       method: "POST",

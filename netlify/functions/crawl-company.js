@@ -3,7 +3,7 @@ exports.handler = async function(event) {
   try{
     const { website } = JSON.parse(event.body || "{}");
     if(!website) return resp(400, { error: "website required" });
-    const urls = dedupe(candidateUrls(website)).slice(0,6);
+    const urls = dedupe(candidateUrls(website)).slice(0,8);
     const pages = [];
     for(const url of urls){
       try{
@@ -28,7 +28,7 @@ function candidateUrls(base){
   try{
     const u = new URL(base);
     const roots = [u.origin, u.origin + "/"];
-    const hints = ["/about", "/company", "/solutions", "/products", "/platform", "/customers", "/press", "/news", "/blog"];
+    const hints = ["/about", "/company", "/team", "/leadership", "/solutions", "/products", "/platform", "/services", "/customers", "/case-studies", "/press", "/news", "/blog", "/careers", "/contact", "/pricing", "/features", "/technology", "/methodology", "/approach"];
     const list = new Set();
     roots.forEach(r => list.add(r));
     hints.forEach(h => list.add(u.origin + h));

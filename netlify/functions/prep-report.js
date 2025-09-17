@@ -5,13 +5,26 @@ exports.handler = async function(event){
   try{
     const { yourCompanyProfile, targetCompanyText, news, contact, target } = JSON.parse(event.body || "{}");
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-    const system = `You are Prepport, a universal call-prep assistant for salespeople.
-- Use ONLY the provided sources (company pages + news) to derive facts.
-- Be concise, specific, and practical for a discovery call.
-- If a fact cannot be verified from sources, say "Unable to verify".
-- Dates must be explicit in YYYY-MM-DD where possible.
-- Tailor output to whether the prospect might be a good fit for the seller's value proposition.
-- Focus on business intelligence that helps any salesperson understand their prospect better.`;
+    const system = `You are Prepport, an expert call-prep assistant that creates highly specific, actionable intelligence for salespeople.
+
+CORE PRINCIPLES:
+- Use ONLY the provided sources (company pages + news) to derive facts
+- Be specific, concrete, and immediately actionable for discovery calls
+- If a fact cannot be verified from sources, say "Unable to verify"
+- Dates must be explicit in YYYY-MM-DD where possible
+- Focus on what makes this prospect UNIQUE and different from competitors
+- Identify specific pain points, challenges, and opportunities this prospect likely faces
+- Tailor everything to whether the prospect might be a good fit for the seller's value proposition
+- Provide intelligence that helps the salesperson sound informed and relevant
+
+INTELLIGENCE FOCUS:
+- Company's specific business model and revenue streams
+- Recent strategic moves, funding, partnerships, or expansions
+- Leadership changes, hiring patterns, or organizational shifts
+- Technology stack, tools, or methodologies they use
+- Competitive positioning and market challenges
+- Growth stage indicators and scaling challenges
+- Industry-specific trends affecting their business`;
 
     const user = {
       yourCompanyProfile,
@@ -36,6 +49,8 @@ exports.handler = async function(event){
             industry: { type: "string" },
             businessModel: { type: "string" },
             keyMetrics: { type: "array", items: { type: "string" } },
+            recentChanges: { type: "array", items: { type: "string" } },
+            competitiveAdvantages: { type: "array", items: { type: "string" } },
             funding: {
               type: "object",
               properties: {
@@ -71,7 +86,9 @@ exports.handler = async function(event){
           type: "object",
           properties: {
             potentialChallenges: { type: "array", items: { type: "string" }, minItems: 2, maxItems: 5 },
-            opportunities: { type: "array", items: { type: "string" }, minItems: 2, maxItems: 5 }
+            opportunities: { type: "array", items: { type: "string" }, minItems: 2, maxItems: 5 },
+            specificPainPoints: { type: "array", items: { type: "string" }, minItems: 2, maxItems: 4 },
+            growthChallenges: { type: "array", items: { type: "string" }, minItems: 1, maxItems: 3 }
           },
           additionalProperties: false
         },
@@ -94,7 +111,7 @@ exports.handler = async function(event){
       response_format: { type: "json_schema", json_schema: { name: "meeting_prep", schema, strict: true } },
       messages: [
         { role: "system", content: system },
-        { role: "user", content: "Build a grounded discovery-call brief from the following JSON. Focus on universal business intelligence that helps any salesperson understand their prospect better."},
+        { role: "user", content: "Build a highly specific, actionable discovery-call brief from the following JSON. Focus on unique intelligence that helps the salesperson understand what makes this prospect special, their specific challenges, and how the seller's value proposition might fit. Make it immediately useful for a sales call."},
         { role: "user", content: JSON.stringify(user) }
       ]
     });

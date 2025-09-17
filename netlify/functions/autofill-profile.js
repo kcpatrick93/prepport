@@ -5,7 +5,7 @@ exports.handler = async function(event){
   try{
     const { website } = JSON.parse(event.body || "{}");
     if(!website) return resp(400, { error: "website required" });
-    const urls = dedupe(candidateUrls(website)).slice(0,5);
+    const urls = dedupe(candidateUrls(website)).slice(0,7);
     const texts = [];
     for(const url of urls){
       try{
@@ -14,12 +14,19 @@ exports.handler = async function(event){
       }catch{}
     }
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-    const prompt = `Summarise the SELLER company from the provided web page text.
+    const prompt = `Analyze the SELLER company from the provided web page text and extract their unique value proposition and benefits.
+
+Focus on:
+- What makes this company DIFFERENT from competitors
+- Specific, concrete benefits they deliver
+- Their unique approach or methodology
+- Tangible outcomes they achieve for clients
+
 Return strict JSON with fields:
 - name (string)
 - website (string)
-- valueProposition (1-2 sentence string, plain English)
-- keyBenefits (array of 3-6 short benefit phrases, no punctuation at end)`;
+- valueProposition (1-2 sentence string that captures their unique value and differentiator)
+- keyBenefits (array of 3-6 specific, concrete benefit phrases that highlight what makes them special)`;
 
     const schema = {
       type: "object",
@@ -38,7 +45,7 @@ Return strict JSON with fields:
       temperature: 0.2,
       response_format: { type: "json_schema", json_schema: { name: "seller_profile", schema, strict: true } },
       messages: [
-        { role: "system", content: "You extract crisp website copy and convert it to sales-friendly company profiles." },
+        { role: "system", content: "You are an expert at analyzing company websites and extracting their unique value propositions. Focus on what makes each company special, their specific methodologies, concrete benefits, and competitive advantages. Avoid generic business language - be specific and compelling." },
         { role: "user", content: prompt },
         { role: "user", content: JSON.stringify({ website, sources: texts }) }
       ]
@@ -60,7 +67,7 @@ function candidateUrls(base){
   try{
     const u = new URL(base);
     const roots = [u.origin, u.origin + "/"];
-    const hints = ["/about", "/solutions", "/products", "/platform"];
+    const hints = ["/about", "/company", "/team", "/solutions", "/products", "/platform", "/services", "/methodology", "/approach", "/why-choose-us", "/our-story"];
     const list = new Set();
     roots.forEach(r => list.add(r));
     hints.forEach(h => list.add(u.origin + h));

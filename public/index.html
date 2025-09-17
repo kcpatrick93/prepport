@@ -102,11 +102,15 @@ function renderReport(r){
   out.innerHTML = `<div style="margin-bottom:10px;"><span class="pill">What they do</span><div>${r.summary?.whatTheyDo || '—'}</div></div>
   <div class="row"><div><span class="pill">Founded</span> ${r.summary?.founded || '—'}</div><div><span class="pill">HQ</span> ${r.summary?.hq || '—'}</div></div>
   <div class="row"><div><span class="pill">Size</span> ${r.summary?.size || '—'}</div><div><span class="pill">Industry</span> ${r.summary?.industry || '—'}</div></div>
+  ${r.summary?.businessModel ? `<div style="margin-top:8px;"><span class="pill">Business Model</span> ${r.summary.businessModel}</div>` : ''}
   ${r.summary?.funding?.lastRound ? `<div style="margin-top:8px;"><span class="pill">Latest Funding</span> ${r.summary.funding.lastRound} (${r.summary.funding.date || '—'})</div>` : ''}
+  ${r.summary?.recentChanges?.length ? `<div style="margin-top:8px;"><span class="pill">Recent Changes</span><ul>${r.summary.recentChanges.map(c=>`<li>${c}</li>`).join('')}</ul></div>` : ''}
+  ${r.summary?.competitiveAdvantages?.length ? `<div style="margin-top:8px;"><span class="pill">Competitive Advantages</span><ul>${r.summary.competitiveAdvantages.map(a=>`<li>${a}</li>`).join('')}</ul></div>` : ''}
   <div style="margin-top:12px;"><span class="pill">Lead with intelligence</span><div><strong>${r.leadWithIntelligence?.openingStatement || '—'}</strong></div><ul>${(r.leadWithIntelligence?.bullets || []).map(b=>`<li>${b}</li>`).join('')}</ul></div>
   <div style="margin-top:12px;"><span class="pill">Strategic Questions</span><ol>${(r.questions?.step4 || []).map(q=>`<li>${q}</li>`).join('')}</ol></div>
-  ${r.painPoints?.potentialChallenges ? `<div style="margin-top:12px;"><span class="pill">Potential Challenges</span><ul>${r.painPoints.potentialChallenges.map(c=>`<li>${c}</li>`).join('')}</ul></div>` : ''}
-  ${r.painPoints?.opportunities ? `<div style="margin-top:12px;"><span class="pill">Opportunities</span><ul>${r.painPoints.opportunities.map(o=>`<li>${o}</li>`).join('')}</ul></div>` : ''}
+  ${r.painPoints?.specificPainPoints?.length ? `<div style="margin-top:12px;"><span class="pill">Specific Pain Points</span><ul>${r.painPoints.specificPainPoints.map(p=>`<li>${p}</li>`).join('')}</ul></div>` : ''}
+  ${r.painPoints?.growthChallenges?.length ? `<div style="margin-top:12px;"><span class="pill">Growth Challenges</span><ul>${r.painPoints.growthChallenges.map(g=>`<li>${g}</li>`).join('')}</ul></div>` : ''}
+  ${r.painPoints?.opportunities?.length ? `<div style="margin-top:12px;"><span class="pill">Opportunities</span><ul>${r.painPoints.opportunities.map(o=>`<li>${o}</li>`).join('')}</ul></div>` : ''}
   <div class="small muted" style="margin-top:12px;">Sources: ${(r.sources?.news||[]).slice(0,3).map(n=>`<a href="${n.url}" target="_blank">${n.title}</a>`).join(' · ')}</div>`;
   document.getElementById('raw').textContent = JSON.stringify(r, null, 2);
 }
