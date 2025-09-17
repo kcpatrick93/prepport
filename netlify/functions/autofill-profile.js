@@ -31,6 +31,7 @@ Return strict JSON with fields:
         keyBenefits: { type: "array", items: { type: "string" }, minItems: 2, maxItems: 6 }
       },
       required: ["name","website","valueProposition","keyBenefits"]
+      additionalProperties: false
     };
 
     const res = await openai.chat.completions.create({
